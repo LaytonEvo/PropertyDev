@@ -169,7 +169,7 @@ def main(argv: list[str] | None = None) -> None:
     crm_sub = crm.add_subparsers(dest="crm_cmd", required=True)
     serve = crm_sub.add_parser("serve", help="Start the CRM (http://127.0.0.1:8000)")
     serve.add_argument("--host", default="127.0.0.1")
-    serve.add_argument("--port", type=int, default=8000)
+    serve.add_argument("--port", type=int, default=int(__import__("os").environ.get("PORT", 8000)))
     serve.add_argument("--db", help="SQLite file (default data/crm.sqlite3, or $CRM_DB)")
     serve.set_defaults(func=cmd_crm_serve)
 
