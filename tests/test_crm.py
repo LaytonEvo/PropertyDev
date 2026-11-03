@@ -136,4 +136,5 @@ def test_password(tmp_path, monkeypatch):
     monkeypatch.setenv("CRM_PASSWORD", "s3cret")
     c = TestClient(create_app(str(tmp_path / "db.sqlite3")))
     assert c.get("/").status_code == 401
+    assert c.get("/healthz").status_code == 200  # platform health check stays open
     assert c.get("/", auth=("any", "s3cret")).status_code == 200

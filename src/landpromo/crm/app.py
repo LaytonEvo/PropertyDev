@@ -40,9 +40,9 @@ DEFAULT_SCENARIOS = {
 security = HTTPBasic(auto_error=False)
 
 
-def _auth(credentials: HTTPBasicCredentials | None = Depends(security)) -> None:
+def _auth(request: Request, credentials: HTTPBasicCredentials | None = Depends(security)) -> None:
     password = os.environ.get("CRM_PASSWORD")
-    if not password:
+    if not password or request.url.path == "/healthz":
         return
     if credentials is None or not secrets.compare_digest(
         credentials.password.encode(), password.encode()
