@@ -39,6 +39,7 @@ DATASETS: dict[str, tuple[Severity, Severity, str]] = {
     "area-of-outstanding-natural-beauty": ("major", "major", "National Landscape (AONB)"),
     "conservation-area": ("moderate", "moderate", "Conservation area"),
     "listed-building-outline": ("moderate", "moderate", "Listed building"),
+    "listed-building": ("moderate", "moderate", "Listed building"),
     "park-and-garden": ("moderate", "moderate", "Registered park and garden"),
     "tree-preservation-zone": ("moderate", "moderate", "Tree preservation order area"),
     "article-4-direction-area": ("info", "info", "Article 4 direction"),
