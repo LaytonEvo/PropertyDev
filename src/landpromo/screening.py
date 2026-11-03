@@ -181,6 +181,23 @@ def _strict_schema(model: type[BaseModel]) -> dict:
     return schema
 
 
+def _constraint_lines(hits: list[ConstraintHit], max_names: int = 3) -> list[str]:
+    """One line per constraint type, so 40 listed buildings don't swamp the appraisal."""
+    groups: dict[tuple, list[ConstraintHit]] = {}
+    for h in hits:
+        groups.setdefault((h.severity, h.label, h.within_buffer_only), []).append(h)
+    out = []
+    for (sev, label, nearby), items in groups.items():
+        where = " (nearby, not on site)" if nearby else ""
+        names = [h.name for h in items if h.name]
+        if len(items) == 1:
+            out.append(f"- [{sev}] {label}{': ' + names[0] if names else ''}{where}")
+        else:
+            eg = f", e.g. {'; '.join(names[:max_names])}" if names else ""
+            out.append(f"- [{sev}] {label} × {len(items)}{where}{eg}")
+    return out
+
+
 def render_markdown(
     inp: ScreeningInput, rules: RulesResult, narrative: Narrative | None = None
 ) -> str:
@@ -204,7 +221,7 @@ def render_markdown(
         if not narrative.agrees_with_rules_rating:
             lines += [f"> **Analyst disagrees with rules rating:** {narrative.disagreement_reason}", ""]
     lines += ["## Constraints", ""]
-    lines += [f"- {c.describe()}" for c in inp.constraints] or ["- None found in searched layers"]
+    lines += _constraint_lines(inp.constraints) or ["- None found in searched layers"]
     lines.append("")
     if inp.economics:
         e = inp.economics

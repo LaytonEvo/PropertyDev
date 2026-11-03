@@ -80,6 +80,10 @@ What it enforces:
 - **Stalled sites**: no movement in 30 days puts the site on the dashboard for a kill/continue decision.
 - **GDPR**: do-not-contact blocks outbound activity; letters to landowners with no privacy notice recorded trigger a warning.
 - **Screening** from the site page, using the same engine as `landpromo screen`. The Claude narrative is added when `ANTHROPIC_API_KEY` is set.
+- **Letters**: draft a landowner letter from the site page, built on `docs/templates/landowner-letter.md` (Claude writes the site-specific paragraph when a key is set). A founder must approve it. The print view adds the privacy notice. Marking it sent logs the activity, records the privacy notice date and sets the 21-day follow-up. Letterhead details come from `CRM_COMPANY_NAME`, `CRM_COMPANY_ADDRESS`, `CRM_SENDER_NAMES`, `CRM_REPLY_EMAIL` and `CRM_REPLY_PHONE`; anything unset shows as a [placeholder] that blocks approval.
+- **Councils (Local Plan monitor)**: track each target council's plan stage, milestones and land supply. Give each council the address of its Local Plan page and the CRM checks it daily, flagging changes on the dashboard (with a Claude summary when a key is set). Set `CRM_MONITOR=0` to switch it off.
+- **Export**: CSV of every table and a full backup file, from the Export page.
+- **Self-check**: `/admin/selfcheck` confirms the planning data lookup and API key work from wherever the app is running.
 
 Before running it anywhere other than your own computer, set `CRM_PASSWORD`. Settings are listed at the top of `src/landpromo/crm/app.py`.
 

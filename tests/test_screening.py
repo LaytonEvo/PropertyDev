@@ -58,3 +58,11 @@ def test_unchecked_sources_cap_at_amber():
     inp = scr.ScreeningInput("T", "residential", 3, 50.9, -1.5, [], e, sources_checked=[])
     r = scr.rules_rating(inp)
     assert r.rating == "AMBER" and "nutrient catchment" in r.reasons[-1]
+
+
+def test_constraint_lines_group_repeats():
+    hits = [ConstraintHit("listed-building", "Listed building", "moderate", f"No {i}") for i in range(5)]
+    hits.append(ConstraintHit("x", "SSSI", "moderate", "Marsh", within_buffer_only=True))
+    lines = scr._constraint_lines(hits)
+    assert lines[0].startswith("- [moderate] Listed building × 5, e.g. No 0; No 1; No 2")
+    assert lines[1] == "- [moderate] SSSI: Marsh (nearby, not on site)"
