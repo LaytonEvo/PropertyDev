@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}{{ council.name }} · Land CRM{% endblock %}
+{% block content %}
+<div class="row"><h1>{{ council.name }}</h1>
+  <form method="post" action="/councils/{{ council.id }}/check"><button class="secondary">Check page now</button></form></div>
+<p class="sub">Last check: {{ (council.last_checked or "never")[:16].replace("T", " ") }} · {{ council.last_status or "—" }}</p>
+<div class="grid">
+  <form class="card stack" method="post" action="/councils/{{ council.id }}/edit">
+    <h2>Local Plan status</h2>
+    <label>Local Plan page to watch<input name="watch_url" type="url" value="{{ council.watch_url or '' }}" placeholder="https://..."></label>
+    <div class="fields">
+      <label>Plan stage<input name="plan_stage" value="{{ council.plan_stage or '' }}" placeholder="e.g. Regulation 18 consultation"></label>
+      <label>5-year land supply<input name="land_supply" value="{{ council.land_supply or '' }}" placeholder="e.g. 3.6 years (Mar 2026)"></label>
+      <label>Next milestone<input type="date" name="next_milestone" value="{{ council.next_milestone or '' }}"></label>
+      <label>Milestone note<input name="next_milestone_note" value="{{ council.next_milestone_note or '' }}" placeholder="e.g. call for sites closes"></label>
+    </div>
+    <label>Notes<textarea name="notes">{{ council.notes or '' }}</textarea></label>
+    <label class="check"><input type="checkbox" name="is_target" {% if council.is_target %}checked{% endif %}> Target council (watched daily)</label>
+    <div><button>Save</button></div>
+  </form>
+  <section class="card">
+    <h2>Changes detected</h2>
+    {% if changes %}
+    {% for x in changes %}
+    <div style="border-bottom:1px solid var(--border); padding:8px 0">
+      <div class="row"><span><span class="badge {{ 'RED' if x.relevance == 'high' else ('AMBER' if x.relevance == 'medium' else '') }}">{{ x.relevance }}</span> {{ x.detected_at[:16].replace("T", " ") }}</span>
+        {% if not x.reviewed %}<form method="post" action="/council-changes/{{ x.id }}/reviewed"><input type="hidden" name="next" value="/councils/{{ council.id }}"><button class="link">Mark reviewed</button></form>{% else %}<span class="muted">reviewed</span>{% endif %}</div>
+      <p>{{ x.summary }}</p>
+      <details><summary>Text that changed</summary><pre class="appraisal">{{ x.diff }}</pre></details>
+    </div>
+    {% endfor %}
+    {% else %}<p class="empty">No changes yet. The first check saves a baseline.</p>{% endif %}
+  </section>
+</div>
+{% endblock %}

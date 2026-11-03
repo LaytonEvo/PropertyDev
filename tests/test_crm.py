@@ -75,6 +75,7 @@ def client(tmp_path, monkeypatch):
     monkeypatch.delenv("CRM_PASSWORD", raising=False)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.setenv("CRM_OFFLINE", "1")
+    monkeypatch.setenv("CRM_MONITOR", "0")
     monkeypatch.setenv("CRM_LAYERS", str(tmp_path / "none.toml"))
     return TestClient(create_app(str(tmp_path / "crm.sqlite3")))
 
@@ -133,6 +134,7 @@ def test_override_is_recorded(client):
 
 
 def test_password(tmp_path, monkeypatch):
+    monkeypatch.setenv("CRM_MONITOR", "0")
     monkeypatch.setenv("CRM_PASSWORD", "s3cret")
     c = TestClient(create_app(str(tmp_path / "db.sqlite3")))
     assert c.get("/").status_code == 401

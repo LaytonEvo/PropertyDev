@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Export · Land CRM{% endblock %}
+{% block content %}
+<h1>Export and backup</h1>
+<p class="sub">Download your data. These files hold landowners' personal details, so store them securely.</p>
+<div class="grid">
+  <section class="card">
+    <h2>Full backup</h2>
+    <p>One file with everything, which can be restored into the CRM.</p>
+    <a class="button" href="/export/backup.sqlite3">Download backup</a>
+  </section>
+  <section class="card">
+    <h2>Spreadsheets (CSV)</h2>
+    <ul class="tight">{% for t in tables %}<li><a href="/export/{{ t }}.csv">{{ t.replace("_", " ") }}</a></li>{% endfor %}</ul>
+  </section>
+</div>
+{% endblock %}

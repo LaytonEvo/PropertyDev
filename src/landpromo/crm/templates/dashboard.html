@@ -17,6 +17,21 @@
 </div>
 
 <div class="grid">
+  {% if council_changes %}
+  <section class="card">
+    <h2>Local Plan changes to review</h2>
+    <ul class="tight">{% for x in council_changes[:8] %}<li><span class="badge {{ 'RED' if x.relevance == 'high' else ('AMBER' if x.relevance == 'medium' else '') }}">{{ x.relevance }}</span> <a href="/councils/{{ x.council_id }}">{{ x.council_name }}</a>: {{ x.summary[:160] }}</li>{% endfor %}</ul>
+  </section>
+  {% endif %}
+  {% if letters_to_approve or letters_to_send %}
+  <section class="card">
+    <h2>Letters</h2>
+    {% if letters_to_approve %}<p class="muted">Waiting for approval</p>
+    <ul class="tight">{% for l in letters_to_approve %}<li><a href="/letters/{{ l.id }}">{{ l.landowner_name }}</a> · {{ l.site_name }}</li>{% endfor %}</ul>{% endif %}
+    {% if letters_to_send %}<p class="muted">Approved, not yet sent</p>
+    <ul class="tight">{% for l in letters_to_send %}<li><a href="/letters/{{ l.id }}">{{ l.landowner_name }}</a> · {{ l.site_name }}</li>{% endfor %}</ul>{% endif %}
+  </section>
+  {% endif %}
   <section class="card">
     <h2>Follow-ups due</h2>
     {% if follow_ups %}

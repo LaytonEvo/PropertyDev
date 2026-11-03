@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Letter to {{ letter.landowner_name }} · Land CRM{% endblock %}
+{% block content %}
+<div class="row"><div><h1>Letter to {{ letter.landowner_name }}</h1>
+  <p class="sub"><a href="/sites/{{ letter.site_id }}">{{ letter.site_name }}</a> · <b>{{ letter.status }}</b>
+  {% if letter.approved_by %} · approved by {{ letter.approved_by }}{% endif %} · drafted with {{ letter.drafted_with }}</p></div>
+  <a class="button secondary" href="/letters/{{ letter.id }}/print" target="_blank">Print view</a></div>
+{% if not owner.address %}<div class="flash error">No postal address recorded for {{ owner.name }}. <a href="/landowners/{{ owner.id }}/edit">Add it</a>.</div>{% endif %}
+<div class="grid">
+  <form class="card stack" method="post" action="/letters/{{ letter.id }}/edit">
+    <h2>Letter</h2>
+    <p class="muted">Fill in anything in [square brackets]. Editing an approved letter sends it back for approval.</p>
+    <textarea name="body" style="min-height:520px" {% if letter.status == 'Sent' %}readonly{% endif %}>{{ letter.body }}</textarea>
+    {% if letter.status != 'Sent' %}<div><button class="secondary">Save changes</button></div>{% endif %}
+  </form>
+  <div>
+    {% if letter.status == 'Draft' %}
+    <form class="card stack" method="post" action="/letters/{{ letter.id }}/approve">
+      <h2>Approve</h2>
+      <p class="muted">Check it's specific to this land, has no pressure or promises, and reads like you.</p>
+      <label>Founder initials<input name="approved_by" maxlength="5" required></label>
+      <div><button>Approve letter</button></div>
+    </form>
+    {% elif letter.status == 'Approved' %}
+    <form class="card stack" method="post" action="/letters/{{ letter.id }}/sent">
+      <h2>Mark as sent</h2>
+      <p class="muted">Print it with the privacy notice, sign it by hand, then record it here. A 21-day follow-up is set.</p>
+      <label>Date posted<input type="date" name="date" value="{{ today() }}"></label>
+      {% include "_who.html" %}
+      <div><button>Mark as sent</button></div>
+    </form>
+    {% else %}
+    <section class="card"><h2>Sent {{ letter.sent_at }}</h2><p class="muted">Logged on the site's activity with a follow-up.</p></section>
+    {% endif %}
+    <section class="card" style="margin-top:16px">
+      <h2>Privacy notice (sent with it)</h2>
+      <pre class="appraisal">{{ notice }}</pre>
+    </section>
+  </div>
+</div>
+{% endblock %}

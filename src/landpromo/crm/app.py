@@ -7,19 +7,26 @@ Settings (environment variables):
   CRM_USERS      comma-separated founder initials for "who" and approvals (default AC,LB)
   CRM_OFFLINE    "1" to skip planning.data.gov.uk when screening
   CRM_LAYERS     local layer config (default data/layers.toml)
+  CRM_MONITOR    "0" to stop the daily council page checks
+  CRM_COMPANY_NAME, CRM_COMPANY_ADDRESS, CRM_SENDER_NAMES, CRM_REPLY_EMAIL, CRM_REPLY_PHONE
+                 printed on landowner letters and the privacy notice
 """
 
 from __future__ import annotations
 
+import csv
+import io
 import os
 import secrets
+import tempfile
+from contextlib import asynccontextmanager
 from dataclasses import replace
 from datetime import date
 from pathlib import Path
 from urllib.parse import urlencode
 
 from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -27,6 +34,8 @@ from fastapi.templating import Jinja2Templates
 from .. import constraints as c
 from .. import economics as econ
 from .. import screening as scr
+from . import letters as lt
+from . import monitor
 from . import rules
 from .db import CRM
 
@@ -92,7 +101,15 @@ def run_screen(site, offline: bool, layers_path: str) -> tuple[str, str, float |
 def create_app(db_path: str | None = None) -> FastAPI:
     crm = CRM(db_path or os.environ.get("CRM_DB", str(REPO / "data" / "crm.sqlite3")))
     users = [u.strip() for u in os.environ.get("CRM_USERS", "AC,LB").split(",") if u.strip()]
-    app = FastAPI(title="Land CRM", dependencies=[Depends(_auth)], docs_url=None, redoc_url=None)
+
+    @asynccontextmanager
+    async def lifespan(app):
+        if os.environ.get("CRM_MONITOR", "1") != "0":
+            monitor.start_background(crm)
+        yield
+
+    app = FastAPI(title="Land CRM", dependencies=[Depends(_auth)], docs_url=None, redoc_url=None,
+                  lifespan=lifespan)
     app.state.crm = crm
     app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
     templates = Jinja2Templates(directory=HERE / "templates")
@@ -133,6 +150,9 @@ def create_app(db_path: str | None = None) -> FastAPI:
             deadlines=crm.upcoming_deadlines(),
             recent=crm.activities(limit=10),
             stall_days=rules.STALL_DAYS,
+            council_changes=crm.council_changes(unreviewed_only=True),
+            letters_to_approve=crm.letters(status="Draft"),
+            letters_to_send=crm.letters(status="Approved"),
         )
 
     # --- sites --------------------------------------------------------------
@@ -182,6 +202,7 @@ def create_app(db_path: str | None = None) -> FastAPI:
             other_landowners=[l for l in crm.landowners() if l["id"] not in linked_ids],
             activities=crm.activities(site_id=site_id),
             spend=crm.spend(site_id), history=crm.stage_history(site_id),
+            letters=crm.letters(site_id=site_id),
             next_stage=rules.STAGES[min(rules.STAGES.index(s["stage"]) + 1, len(rules.STAGES) - 2)],
         )
 
@@ -349,5 +370,184 @@ def create_app(db_path: str | None = None) -> FastAPI:
         crm.complete_follow_up(aid)
         back = (await request.form()).get("next") or "/"
         return _go(back if back.startswith("/") else "/", msg="Follow-up marked done.")
+
+    # --- councils / Local Plan monitor ----------------------------------------
+    @app.get("/councils", response_class=HTMLResponse)
+    def councils(request: Request):
+        return page(request, "councils.html", councils=crm.councils(),
+                    changes=crm.council_changes(unreviewed_only=True))
+
+    @app.post("/councils")
+    async def council_create(request: Request):
+        name = ((await request.form()).get("name") or "").strip()
+        if not name:
+            return _go("/councils", error="Enter the council's name.")
+        try:
+            cid = crm.create_council(name)
+        except Exception:
+            return _go("/councils", error=f"{name} is already listed.")
+        return _go(f"/councils/{cid}", msg="Council added.")
+
+    @app.get("/councils/{cid}", response_class=HTMLResponse)
+    def council_detail(request: Request, cid: int):
+        council = crm.council(cid)
+        if council is None:
+            raise HTTPException(404, "Council not found")
+        return page(request, "council.html", council=council, changes=crm.council_changes(cid))
+
+    @app.post("/councils/{cid}/edit")
+    async def council_edit(request: Request, cid: int):
+        form = await request.form()
+        data = {f: (form.get(f) or "").strip() for f in
+                ("plan_stage", "next_milestone", "next_milestone_note", "land_supply", "watch_url", "notes")}
+        data["next_milestone"] = data["next_milestone"] or None
+        data["is_target"] = 1 if form.get("is_target") else 0
+        url = data["watch_url"]
+        if url and not url.startswith(("http://", "https://")):
+            return _go(f"/councils/{cid}", error="The page address must start with https://")
+        old = crm.council(cid)
+        crm.update_council(cid, data)
+        if url != (old["watch_url"] or ""):
+            crm.record_check(cid, "page changed; new baseline on next check", None, None)
+            crm._exec("UPDATE councils SET last_hash = NULL, last_text = NULL WHERE id = ?", (cid,))
+        return _go(f"/councils/{cid}", msg="Saved.")
+
+    @app.post("/councils/{cid}/check")
+    def council_check(cid: int):
+        status = monitor.check_council(crm, crm.council(cid))
+        return _go(f"/councils/{cid}", msg=f"Checked: {status}.")
+
+    @app.post("/councils/check-all")
+    def council_check_all():
+        results = monitor.check_all(crm, only_due=False)
+        changed = sum(1 for v in results.values() if v == "changed")
+        return _go("/councils", msg=f"Checked {len(results)} pages; {changed} changed.")
+
+    @app.post("/council-changes/{xid}/reviewed")
+    async def change_reviewed(request: Request, xid: int):
+        crm.mark_change_reviewed(xid)
+        back = (await request.form()).get("next") or "/councils"
+        return _go(back if back.startswith("/") else "/councils", msg="Marked as reviewed.")
+
+    # --- letters ------------------------------------------------------------
+    @app.get("/letters", response_class=HTMLResponse)
+    def letters_list(request: Request):
+        return page(request, "letters.html", letters=crm.letters())
+
+    @app.post("/sites/{site_id}/letters")
+    async def letter_create(request: Request, site_id: int):
+        site = get_site(site_id)
+        form = await request.form()
+        if not form.get("landowner_id"):
+            return _go(f"/sites/{site_id}", error="Pick a landowner to write to.")
+        owner = crm.landowner(int(form["landowner_id"]))
+        if owner["do_not_contact"]:
+            return _go(f"/sites/{site_id}", error=f"{owner['name']} is marked do-not-contact.")
+        try:
+            body, how = lt.draft(site, owner)
+        except Exception as e:
+            body, how = lt.fill_template(site, owner), "template"
+            err = f"Claude drafting failed ({e.__class__.__name__}); used the plain template."
+        else:
+            err = None
+        lid = crm.create_letter(site_id, owner["id"], body, how, form.get("by_whom", ""))
+        return _go(f"/letters/{lid}", msg=None if err else "Draft ready for review.", error=err)
+
+    def get_letter(letter_id: int):
+        letter = crm.letter(letter_id)
+        if letter is None:
+            raise HTTPException(404, "Letter not found")
+        return letter
+
+    @app.get("/letters/{letter_id}", response_class=HTMLResponse)
+    def letter_detail(request: Request, letter_id: int):
+        letter = get_letter(letter_id)
+        site, owner = crm.site(letter["site_id"]), crm.landowner(letter["landowner_id"])
+        return page(request, "letter.html", letter=letter, owner=owner,
+                    notice=lt.privacy_notice(site, owner))
+
+    @app.post("/letters/{letter_id}/edit")
+    async def letter_edit(request: Request, letter_id: int):
+        get_letter(letter_id)
+        crm.update_letter_body(letter_id, (await request.form()).get("body", ""))
+        return _go(f"/letters/{letter_id}", msg="Saved. It needs approval again.")
+
+    @app.post("/letters/{letter_id}/approve")
+    async def letter_approve(request: Request, letter_id: int):
+        letter = get_letter(letter_id)
+        by = ((await request.form()).get("approved_by") or "").strip()
+        if not by:
+            return _go(f"/letters/{letter_id}", error="Enter founder initials to approve.")
+        if "[" in letter["body"]:
+            return _go(f"/letters/{letter_id}",
+                       error="The letter still has [placeholders] to fill in before approval.")
+        crm.approve_letter(letter_id, by)
+        return _go(f"/letters/{letter_id}", msg="Approved. Print it, sign it, and mark it as sent.")
+
+    @app.post("/letters/{letter_id}/sent")
+    async def letter_sent(request: Request, letter_id: int):
+        letter = get_letter(letter_id)
+        if letter["status"] != "Approved":
+            return _go(f"/letters/{letter_id}", error="Only an approved letter can be marked as sent.")
+        form = await request.form()
+        sent_on = form.get("date") or date.today().isoformat()
+        crm.mark_letter_sent(letter_id, sent_on)
+        owner = crm.landowner(letter["landowner_id"])
+        if not owner["privacy_notice_sent"]:
+            crm.update_landowner(owner["id"], {"privacy_notice_sent": sent_on})
+        follow = rules.default_follow_up("Letter sent", date.fromisoformat(sent_on))
+        crm.add_activity({"site_id": letter["site_id"], "landowner_id": owner["id"], "date": sent_on,
+                          "kind": "Letter sent", "summary": f"Letter #{letter_id} with privacy notice",
+                          "by_whom": form.get("by_whom", ""), "follow_up_date": follow.isoformat()})
+        return _go(f"/sites/{letter['site_id']}", msg="Letter logged as sent; follow-up set for 21 days.")
+
+    @app.get("/letters/{letter_id}/print", response_class=HTMLResponse)
+    def letter_print(request: Request, letter_id: int):
+        letter = get_letter(letter_id)
+        site, owner = crm.site(letter["site_id"]), crm.landowner(letter["landowner_id"])
+        return templates.TemplateResponse(request, "letter_print.html", {
+            "letter": letter, "notice": lt.privacy_notice(site, owner)})
+
+    # --- export and checks --------------------------------------------------
+    @app.get("/export", response_class=HTMLResponse)
+    def export_page(request: Request):
+        return page(request, "export.html", tables=crm.EXPORT_TABLES)
+
+    @app.get("/export/backup.sqlite3")
+    def export_backup():
+        tmp = tempfile.NamedTemporaryFile(suffix=".sqlite3", delete=False)
+        tmp.close()
+        crm.backup_to(tmp.name)
+        return FileResponse(tmp.name, filename=f"crm-backup-{date.today()}.sqlite3",
+                            media_type="application/octet-stream")
+
+    @app.get("/export/{table}.csv")
+    def export_csv(table: str):
+        if table not in crm.EXPORT_TABLES:
+            raise HTTPException(404, "Unknown table")
+        cols, rows = crm.table_rows(table)
+        if table == "councils":  # page snapshots are large and not useful in a spreadsheet
+            keep = [i for i, c in enumerate(cols) if c != "last_text"]
+            cols, rows = [cols[i] for i in keep], [tuple(r[i] for i in keep) for r in rows]
+        buf = io.StringIO()
+        w = csv.writer(buf)
+        w.writerow(cols)
+        w.writerows(rows)
+        return Response(buf.getvalue(), media_type="text/csv",
+                        headers={"Content-Disposition": f'attachment; filename="{table}-{date.today()}.csv"'})
+
+    @app.get("/admin/selfcheck")
+    def selfcheck():
+        """Confirms the live data sources work from wherever the app is running."""
+        out: dict = {"anthropic_api_key_set": bool(os.environ.get("ANTHROPIC_API_KEY"))}
+        layers = c.load_local_layers(os.environ.get("CRM_LAYERS", str(REPO / "data" / "layers.toml")))
+        out["local_layers_loaded"] = [l.name for l in layers]
+        try:
+            geom = c.site_from_point(51.0689, -1.7945, 2.0)  # central Salisbury
+            hits = c.lookup_constraints(geom, "residential", client=c.PlanningDataClient())
+            out["planning_data"] = {"ok": True, "found": [h.describe() for h in hits][:25]}
+        except Exception as e:
+            out["planning_data"] = {"ok": False, "error": f"{e.__class__.__name__}: {e}"[:300]}
+        return JSONResponse(out)
 
     return app

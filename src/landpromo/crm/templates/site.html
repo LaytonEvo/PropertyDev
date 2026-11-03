@@ -116,6 +116,20 @@
 </section>
 
 <section class="card" style="margin-top:16px">
+  <h2>Letters</h2>
+  {% if letters %}
+  <ul class="tight">{% for l in letters %}<li><a href="/letters/{{ l.id }}">{{ l.landowner_name }}</a> · {{ l.status }} · {{ l.created_at[:10] }}</li>{% endfor %}</ul>
+  {% else %}<p class="empty">No letters yet.</p>{% endif %}
+  {% if landowners %}
+  <form class="inline" method="post" action="/sites/{{ site.id }}/letters" style="margin-top:12px">
+    <label>Write to<select name="landowner_id">{% for l in landowners if not l.do_not_contact %}<option value="{{ l.id }}">{{ l.name }}</option>{% endfor %}</select></label>
+    {% include "_who.html" %}
+    <button class="secondary">Draft letter</button>
+  </form>
+  {% endif %}
+</section>
+
+<section class="card" style="margin-top:16px">
   <div class="row"><h2>Desktop appraisal</h2>
     <form method="post" action="/sites/{{ site.id }}/screen"><button class="secondary">{{ "Re-run screen" if site.appraisal_md else "Run screen" }}</button></form>
   </div>

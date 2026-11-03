@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Letters · Land CRM{% endblock %}
+{% block content %}
+<h1>Letters</h1>
+<p class="sub">Draft from a site's page. Every letter needs a founder's approval before it goes out.</p>
+<div class="card table-wrap">
+{% if letters %}
+<table>
+  <tr><th>Landowner</th><th>Site</th><th>Status</th><th>Drafted</th><th>Approved by</th><th>Sent</th></tr>
+  {% for l in letters %}
+  <tr><td><a href="/letters/{{ l.id }}">{{ l.landowner_name }}</a></td><td><a href="/sites/{{ l.site_id }}">{{ l.site_name }}</a></td>
+    <td><span class="badge {{ 'GREEN' if l.status == 'Sent' else ('AMBER' if l.status == 'Draft' else '') }}">{{ l.status }}</span></td>
+    <td>{{ l.created_at[:10] }} <span class="muted">{{ l.drafted_by }} · {{ l.drafted_with }}</span></td><td>{{ l.approved_by }}</td><td>{{ l.sent_at or "" }}</td></tr>
+  {% endfor %}
+</table>
+{% else %}<p class="empty">No letters yet.</p>{% endif %}
+</div>
+{% endblock %}

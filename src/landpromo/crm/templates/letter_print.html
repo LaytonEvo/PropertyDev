@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Letter to {{ letter.landowner_name }}</title>
+<style>
+  body { font: 11pt/1.5 Georgia, "Times New Roman", serif; color: #000; background: #fff; max-width: 170mm; margin: 20mm auto; padding: 0 16px; }
+  .page { white-space: pre-wrap; }
+  .break { page-break-before: always; margin-top: 40px; }
+  .note { font: 10pt/1.4 system-ui, sans-serif; background: #fff4e5; padding: 8px 12px; margin-bottom: 20px; }
+  @media print { .note { display: none; } body { margin: 0 auto; } }
+</style></head>
+<body>
+{% if letter.status == 'Draft' %}<p class="note">Draft: not yet approved by a founder.</p>{% endif %}
+<div class="page">{{ letter.body | replace("**", "") }}</div>
+<div class="page break">{{ notice | replace("**", "") }}</div>
+</body></html>

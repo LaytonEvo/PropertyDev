@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Councils · Land CRM{% endblock %}
+{% block content %}
+<div class="row"><h1>Councils</h1>
+  <form method="post" action="/councils/check-all"><button class="secondary">Check all pages now</button></form></div>
+<p class="sub">Each council's Local Plan page is checked once a day. Changes appear here and on the dashboard for review.</p>
+<div class="card table-wrap">
+<table>
+  <tr><th>Council</th><th>Target</th><th>Plan stage</th><th>Next milestone</th><th>5-yr land supply</th><th>Page watched</th><th>Last check</th><th>To review</th></tr>
+  {% for c in councils %}
+  <tr>
+    <td><a href="/councils/{{ c.id }}">{{ c.name }}</a></td>
+    <td>{{ "Yes" if c.is_target else "No" }}</td>
+    <td>{{ c.plan_stage or "—" }}</td>
+    <td>{{ c.next_milestone or "" }} <span class="muted">{{ c.next_milestone_note }}</span></td>
+    <td>{{ c.land_supply or "—" }}</td>
+    <td>{% if c.watch_url %}<a href="{{ c.watch_url }}" rel="noopener" target="_blank">open</a>{% else %}<span class="badge AMBER">not set</span>{% endif %}</td>
+    <td>{{ (c.last_checked or "")[:16].replace("T", " ") }} <span class="muted">{{ c.last_status }}</span></td>
+    <td>{% if c.unreviewed %}<span class="badge AMBER">{{ c.unreviewed }}</span>{% endif %}</td>
+  </tr>
+  {% endfor %}
+</table>
+</div>
+<form class="card inline" method="post" action="/councils" style="margin-top:16px">
+  <label>Add a council<input name="name" placeholder="e.g. Hart District Council"></label>
+  <button class="secondary">Add</button>
+</form>
+{% endblock %}

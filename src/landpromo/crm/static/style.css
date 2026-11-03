@@ -46,7 +46,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .bar { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin: 6px 0; }
 .bar i { display: block; height: 100%; background: var(--accent); }
 .bar.over i { background: var(--red); }
-form.stack { display: grid; gap: 10px; }
+form.stack { display: grid; gap: 10px; align-content: start; }
 form.inline { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; }
 .fields { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 label { display: grid; gap: 3px; font-size: .85rem; color: var(--muted); }
