@@ -82,3 +82,7 @@ What it enforces:
 - **Screening** from the site page, using the same engine as `landpromo screen`. The Claude narrative is added when `ANTHROPIC_API_KEY` is set.
 
 Before running it anywhere other than your own computer, set `CRM_PASSWORD`. Settings are listed at the top of `src/landpromo/crm/app.py`.
+
+### Hosted on Railway
+
+The CRM runs on Railway (project `land-crm`, service `crm`), built from the `Dockerfile`. It redeploys automatically on every push to the branch it tracks. The database sits on a Railway volume mounted at `/data`, so it survives redeploys. The password is the `CRM_PASSWORD` variable in the service's Variables tab. When this branch is merged, point the service at `main` (Settings → Source).
