@@ -1,0 +1,30 @@
+# Example residential edge-of-settlement site.
+# EVERY value marked PLACEHOLDER must be replaced with local agent figures.
+
+[site]
+gross_acres = 3.0
+land_use = "residential"
+net_developable_ratio = 0.65        # open space, BNG, SuDS, access
+density_dph = 30.0
+affordable_pct = 0.35               # check the authority's policy (often 35-40% in Hampshire)
+value_per_market_plot = 75000       # PLACEHOLDER
+value_per_affordable_plot = 15000   # PLACEHOLDER
+s106_cil_per_dwelling = 10000       # PLACEHOLDER
+nutrient_cost_per_dwelling = 0      # set e.g. 3000-6000 if inside a catchment (PLACEHOLDER)
+bng_cost_total = 0
+existing_use_value_per_acre = 12000 # PLACEHOLDER
+
+[terms]
+promoter_share = 0.25
+split_basis = "net_proceeds"        # or "uplift": landowner keeps existing use value first
+sale_cost_pct = 0.02
+landowner_legal_fees = 7500
+
+[planning]
+application_cost = 45000
+p_consent_first = 0.55
+appeal_on_refusal = true
+appeal_cost = 40000
+p_appeal_success = 0.45
+years_to_sale = 4.0
+extra_years_if_appeal = 1.5

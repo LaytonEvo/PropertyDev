@@ -1,0 +1,21 @@
+# Business Plan v2 minimum: ~£300k gross value, 30% share, ~£60k costs.
+# Shows why the floor is too low once refusal risk is included.
+
+[site]
+gross_acres = 1.0
+land_use = "industrial"
+net_developable_ratio = 1.0
+value_per_net_acre = 306122         # gives ~£300k after 2% sale costs
+existing_use_value_per_acre = 0
+
+[terms]
+promoter_share = 0.30
+split_basis = "net_proceeds"
+sale_cost_pct = 0.02
+landowner_legal_fees = 0
+
+[planning]
+application_cost = 60000
+p_consent_first = 0.6
+appeal_on_refusal = false
+years_to_sale = 4.0

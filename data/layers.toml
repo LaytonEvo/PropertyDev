@@ -1,0 +1,14 @@
+# Local GeoJSON layers (WGS84 lon/lat). Paths are relative to this file.
+# severity per land use: fatal | major | moderate | info. Leave a use out to ignore the layer for it.
+
+[layers.nutrient_catchments]
+label = "Nutrient neutrality catchment"
+path = "layers/nutrient_catchments.geojson"
+name_field = "name"
+severity = { residential = "major" }   # employment uses are generally unaffected
+
+[layers.settlement_boundaries]
+label = "Inside settlement boundary"
+path = "layers/settlement_boundaries.geojson"
+name_field = "name"
+severity = { residential = "info", industrial = "info" }

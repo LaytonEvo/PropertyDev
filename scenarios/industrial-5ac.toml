@@ -1,0 +1,24 @@
+# Example employment site next to an existing industrial estate.
+# Business Plan Appendix A costs a 5-acre industrial application at £28-56k+.
+
+[site]
+gross_acres = 5.0
+land_use = "industrial"
+net_developable_ratio = 0.75
+value_per_net_acre = 400000         # PLACEHOLDER: consented employment land
+existing_use_value_per_acre = 12000 # PLACEHOLDER
+
+[terms]
+promoter_share = 0.25
+split_basis = "net_proceeds"
+sale_cost_pct = 0.02
+landowner_legal_fees = 7500
+
+[planning]
+application_cost = 56000
+p_consent_first = 0.5
+appeal_on_refusal = true
+appeal_cost = 40000
+p_appeal_success = 0.4
+years_to_sale = 3.5
+extra_years_if_appeal = 1.5
