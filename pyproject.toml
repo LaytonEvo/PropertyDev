@@ -3,10 +3,13 @@ name = "landpromo"
 version = "0.1.0"
 description = "Internal tools for a land promotion venture: site economics, constraint screening, settlement shortlist"
 requires-python = ">=3.11"
-dependencies = ["anthropic>=2.4", "pydantic>=2", "requests>=2.31", "shapely>=2"]
+dependencies = [
+    "anthropic>=2.4", "pydantic>=2", "requests>=2.31", "shapely>=2",
+    "fastapi>=0.110", "uvicorn>=0.29", "jinja2>=3.1", "python-multipart>=0.0.9",
+]
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "httpx>=0.27"]
 
 [project.scripts]
 landpromo = "landpromo.cli:main"
@@ -17,6 +20,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"landpromo.crm" = ["templates/*.html", "static/*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

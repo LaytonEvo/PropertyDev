@@ -6,3 +6,5 @@ out/
 .env
 # Downloaded GIS layers (may be large or licence-restricted)
 data/layers/*.geojson
+# CRM database (personal data - never commit)
+data/*.sqlite3*

@@ -112,6 +112,20 @@ def cmd_shortlist(args) -> None:
     print(f"\nSaved to {out}")
 
 
+def cmd_crm_serve(args) -> None:
+    import os
+
+    import uvicorn
+
+    if args.db:
+        os.environ["CRM_DB"] = args.db
+    if args.host not in ("127.0.0.1", "localhost") and not os.environ.get("CRM_PASSWORD"):
+        sys.exit("Set CRM_PASSWORD before serving beyond this machine.")
+    from .crm.app import create_app
+
+    uvicorn.run(create_app(), host=args.host, port=args.port)
+
+
 def main(argv: list[str] | None = None) -> None:
     p = argparse.ArgumentParser(prog="landpromo")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -150,6 +164,14 @@ def main(argv: list[str] | None = None) -> None:
     t.add_argument("--offline", action="store_true")
     t.add_argument("--out", default="out/settlement-shortlist.md")
     t.set_defaults(func=cmd_shortlist)
+
+    crm = sub.add_parser("crm", help="Run the CRM web app")
+    crm_sub = crm.add_subparsers(dest="crm_cmd", required=True)
+    serve = crm_sub.add_parser("serve", help="Start the CRM (http://127.0.0.1:8000)")
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8000)
+    serve.add_argument("--db", help="SQLite file (default data/crm.sqlite3, or $CRM_DB)")
+    serve.set_defaults(func=cmd_crm_serve)
 
     args = p.parse_args(argv)
     args.func(args)

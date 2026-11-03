@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ "Edit " ~ owner.name if owner else "New landowner" }}</h1>
+<form class="card stack" method="post" action="{{ '/landowners/%d/edit' % owner.id if owner else '/landowners' }}">
+  <div class="fields">
+    <label>Name<input name="name" required value="{{ owner.name if owner else '' }}"></label>
+    <label>Type<select name="owner_type">{% for t in ["Individual", "Couple", "Trust", "Farm partnership", "Company", "Estate", "Other"] %}<option {% if owner and owner.owner_type == t %}selected{% endif %}>{{ t }}</option>{% endfor %}</select></label>
+    <label>Email<input type="email" name="email" value="{{ owner.email if owner else '' }}"></label>
+    <label>Phone<input name="phone" value="{{ owner.phone if owner else '' }}"></label>
+    <label>Lawful basis<input name="lawful_basis" value="{{ owner.lawful_basis if owner else 'Legitimate interests' }}"></label>
+    <label>Privacy notice sent<input type="date" name="privacy_notice_sent" value="{{ owner.privacy_notice_sent if owner and owner.privacy_notice_sent else '' }}"></label>
+  </div>
+  <label>Postal address<textarea name="address">{{ owner.address if owner else '' }}</textarea></label>
+  <label class="check"><input type="checkbox" name="do_not_contact" {% if owner and owner.do_not_contact %}checked{% endif %}> Do not contact (they asked not to be contacted)</label>
+  <label>Notes<textarea name="notes">{{ owner.notes if owner else '' }}</textarea></label>
+  <div><button>Save</button> <a href="{{ '/landowners/%d' % owner.id if owner else '/landowners' }}">Cancel</a></div>
+</form>
+{% endblock %}

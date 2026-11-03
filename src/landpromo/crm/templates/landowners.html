@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Landowners · Land CRM{% endblock %}
+{% block content %}
+<div class="row"><h1>Landowners</h1><a class="button" href="/landowners/new">+ Landowner</a></div>
+<p class="sub">Private individuals' details. Keep only what you need, and record when the privacy notice was sent.</p>
+<div class="card table-wrap">
+{% if landowners %}
+<table>
+  <tr><th>Name</th><th>Type</th><th>Sites</th><th>Privacy notice</th><th>Contact</th></tr>
+  {% for l in landowners %}
+  <tr>
+    <td><a href="/landowners/{{ l.id }}">{{ l.name }}</a> {% if l.do_not_contact %}<span class="badge RED">do not contact</span>{% endif %}</td>
+    <td>{{ l.owner_type }}</td>
+    <td>{{ l.site_names or "" }}</td>
+    <td>{{ l.privacy_notice_sent or "—" }}</td>
+    <td>{{ l.email or l.phone or "" }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}<p class="empty">No landowners yet.</p>{% endif %}
+</div>
+{% endblock %}

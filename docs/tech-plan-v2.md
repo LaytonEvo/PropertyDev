@@ -10,7 +10,7 @@ Analysis and the Technology Architecture v1.
 |---|---|---|
 | Months 1–3 spent building a PostGIS data store before the first letter | No data store in year 1. Constraint lookups use the free **planning.data.gov.uk** API plus a few local GeoJSON layers; LandInsight stays for the full year | Year-1 volume is 1–2 agreements from 400–600 letters. The data store fails v1's own Principle 5 and delays the business |
 | Screening engine is the *first* build | **Decision tools come first**: site economics model, nutrient filter, settlement shortlist | The two checks that decide whether the venture works (nutrient exposure and per-site economics) were never done |
-| CRM (System 5) built in months 5–7, after outreach starts | **ClickUp pipeline in week 1** | Outreach responses and spend caps need somewhere to live from day one; setup takes 1–2 weeks |
+| CRM (System 5) built in months 5–7, after outreach starts | **Built-in CRM (`landpromo crm`) in week 1** | Outreach responses and spend caps need somewhere to live from day one; setup takes 1–2 weeks |
 | The economics check sits outside the tech | **Economics is built into screening.** Every appraisal includes an expected-value calculation with refusal and appeal probabilities | The £300k "minimum uplift" rule ignores refusal risk. At that floor the expected profit is about £19k per deal |
 | Outreach SQL assumes bulk owner names for private landowners | Owners bought **per title** for shortlisted parcels only. Targets are fields at the settlement edge, not whole titles filtered to 1–5 acres | INSPIRE has no owner names; CCOD/OCOD only cover companies. Edge fields usually sit inside large farm titles |
 | GDPR not mentioned | Legitimate-interests assessment, Article 14 privacy notice, ICO registration and a data processing agreement with the LLM provider **before the first letter** | Landowners are private individuals |
@@ -33,11 +33,11 @@ Analysis and the Technology Architecture v1.
                 └─────────────────────────────────────────────┘
                        │                       ▲
                        ▼                       │
-                 ClickUp pipeline        LandInsight (licensed,
+                 CRM (built-in)          LandInsight (licensed,
                  (stages, spend caps)    titles/ownership/comps)
 ```
 
-* **Python package** in this repo, callable from the CLI now. It can sit behind a small HTTP endpoint later, so n8n workflows (the group's standard pattern) can call it.
+* **Python package and CRM web app** in this repo, callable from the CLI now. It can sit behind a small HTTP endpoint later, so n8n workflows (the group's standard pattern) can call it.
 * **Claude API** for the narrative appraisal only. The red/amber/green rating is decided by the rules and economics in code, so it can be audited. Claude explains the rating and flags what to check; it does not decide.
 * **Humans in the loop**: every appraisal is a draft for founder review, as in v1.
 
@@ -47,15 +47,15 @@ Analysis and the Technology Architecture v1.
 |---|---|---|
 | Weeks 1–2 | **Economics model** (`landpromo economics`, `min-acres`) | Worked residential and industrial examples, with values confirmed by a local agent, and the minimum viable site size known for each target authority |
 | Weeks 1–2 | **Nutrient filter + settlement shortlist** (`landpromo shortlist`) | Each candidate settlement tagged as residential tier 1 or industrial only. Go/no-go on the geography |
-| Week 1 | **ClickUp pipeline** (stages and spend caps below) | Live before any outreach |
+| Week 1 | **CRM** (`landpromo crm serve`: stages and spend caps below) | Live before any outreach |
 | Weeks 2–4 | **Screening v1** (`landpromo screen`): constraints + economics + Claude narrative | First 20 sites screened and checked by hand against CarneySweeney's desktop view |
 | Months 2–3 | **Local Plan monitor** for the ~10 target authorities (n8n + Claude extraction of plan stage and call-for-sites; Slack/email alerts) | Local Plan stage and next consultation dates logged for every authority. Also tracks the Hampshire reorganisation timetable |
 | Month 3 | **Pool sizing**: count edge-of-settlement parcels per settlement (LandInsight export + local layers) | The 400–600 letter target is checked against the real number of parcels |
-| Months 3–5 | **Outreach drafting**: letter drafts from ClickUp records, founder-signed; GDPR pack in place | First 100 letters out |
+| Months 3–5 | **Outreach drafting**: letter drafts from CRM records, founder-signed; GDPR pack in place | First 100 letters out |
 | First agreement | **Document drafting** (landowner updates first, then planning statement support) | — |
 | Revisit at month 9 | Data store / LandInsight replacement | Only if screening volume exceeds ~50 sites a month or LandInsight gaps are hurting |
 
-## ClickUp pipeline spec
+## CRM pipeline spec (built: `src/landpromo/crm`)
 
 Stages and spend caps, reconciled with Business Plan §2.2. Pre-commitment spend is capped at £1k in total; Heads of Terms legal work is post-commitment.
 

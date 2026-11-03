@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Dashboard</h1>
+<p class="sub">Pipeline, what needs doing, and where the money has gone.</p>
+
+<div class="pipeline">
+{% for s in STAGES %}
+  <a href="/sites?stage={{ s|urlencode }}"><b>{{ counts.get(s, 0) }}</b><span>{{ s }}</span></a>
+{% endfor %}
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="v">{{ live_count }}</div><div class="l">Live sites</div></div>
+  <div class="stat"><div class="v">{{ committed|gbp }}</div><div class="l">Spent on live sites</div></div>
+  <div class="stat"><div class="v">{{ total_spent|gbp }}</div><div class="l">Spent in total (incl. killed)</div></div>
+  <div class="stat"><div class="v">{{ follow_ups|length }}</div><div class="l">Follow-ups due</div></div>
+</div>
+
+<div class="grid">
+  <section class="card">
+    <h2>Follow-ups due</h2>
+    {% if follow_ups %}
+    <div class="table-wrap"><table>
+      <tr><th>Due</th><th>Site / landowner</th><th>Last action</th><th></th></tr>
+      {% for a in follow_ups %}
+      <tr>
+        <td>{{ a.follow_up_date }}</td>
+        <td>{% if a.site_id %}<a href="/sites/{{ a.site_id }}">{{ a.site_name }}</a>{% endif %}
+            {% if a.landowner_id %}<br><a href="/landowners/{{ a.landowner_id }}">{{ a.landowner_name }}</a>{% endif %}</td>
+        <td>{{ a.kind }} ({{ a.date }})</td>
+        <td><form method="post" action="/activities/{{ a.id }}/done"><input type="hidden" name="next" value="/"><button class="link">Done</button></form></td>
+      </tr>
+      {% endfor %}
+    </table></div>
+    {% else %}<p class="empty">Nothing due.</p>{% endif %}
+  </section>
+
+  <section class="card">
+    <h2>Stalled: no movement in {{ stall_days }} days</h2>
+    <p class="muted">Decide: kill or continue.</p>
+    {% if stalled %}
+    <ul class="tight">{% for s in stalled %}<li><a href="/sites/{{ s.id }}">{{ s.name }}</a> <span class="muted">({{ s.stage }})</span></li>{% endfor %}</ul>
+    {% else %}<p class="empty">No stalled sites.</p>{% endif %}
+  </section>
+
+  <section class="card">
+    <h2>Deadlines in the next 30 days</h2>
+    {% if deadlines %}
+    <ul class="tight">{% for s in deadlines %}<li>{{ s.next_deadline }}: <a href="/sites/{{ s.id }}">{{ s.name }}</a> <span class="muted">{{ s.next_deadline_note }}</span></li>{% endfor %}</ul>
+    {% else %}<p class="empty">None recorded.</p>{% endif %}
+  </section>
+
+  <section class="card">
+    <h2>Recent activity</h2>
+    {% if recent %}
+    <ul class="tight">{% for a in recent %}<li>{{ a.date }}: {{ a.kind }}{% if a.site_name %} · <a href="/sites/{{ a.site_id }}">{{ a.site_name }}</a>{% endif %}{% if a.landowner_name %} · {{ a.landowner_name }}{% endif %} <span class="muted">{{ a.by_whom }}</span></li>{% endfor %}</ul>
+    {% else %}<p class="empty">No activity yet.</p>{% endif %}
+  </section>
+</div>
+{% endblock %}

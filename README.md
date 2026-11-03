@@ -61,3 +61,24 @@ Appraisals are saved to `out/appraisals/` as Markdown. Each is a draft for found
 ```bash
 pytest
 ```
+
+## CRM
+
+A small web app for the pipeline: sites, landowners, activity, spend and stage changes.
+
+```bash
+landpromo crm serve
+```
+
+Open http://127.0.0.1:8000. Data lives in `data/crm.sqlite3`, a single file that is git-ignored because it holds personal data. Back it up by copying the file.
+
+What it enforces:
+- **Spend caps per stage** (Identified £0, Outreach £200, Engaged £1,000, HoTs £1,000 + legal budget, Agreement + agreement budget). Spend over the cap needs a founder's initials.
+- **Stage gates**: a site can't go to Outreach without a screen (not RED) and a linked landowner, or to HoTs without an expected-profit figure and a legal budget. A founder can override, and the override is logged.
+- **Kill reasons** are required, so lessons are kept.
+- **Follow-ups**: letters and emails get a 21-day follow-up automatically. A reply closes it.
+- **Stalled sites**: no movement in 30 days puts the site on the dashboard for a kill/continue decision.
+- **GDPR**: do-not-contact blocks outbound activity; letters to landowners with no privacy notice recorded trigger a warning.
+- **Screening** from the site page, using the same engine as `landpromo screen`. The Claude narrative is added when `ANTHROPIC_API_KEY` is set.
+
+Before running it anywhere other than your own computer, set `CRM_PASSWORD`. Settings are listed at the top of `src/landpromo/crm/app.py`.

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Land CRM{% endblock %}</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header><nav>
+  <a class="brand" href="/">Land CRM</a>
+  <a href="/">Dashboard</a>
+  <a href="/sites">Sites</a>
+  <a href="/landowners">Landowners</a>
+  <a class="button" href="/sites/new">+ Site</a>
+</nav></header>
+<main>
+  {% if error %}<div class="flash error">{{ error }}</div>{% endif %}
+  {% if msg %}<div class="flash msg">{{ msg }}</div>{% endif %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

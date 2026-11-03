@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Sites · Land CRM{% endblock %}
+{% block content %}
+<div class="row"><h1>Sites{% if stage %}: {{ stage }}{% endif %}</h1><a class="button" href="/sites/new">+ Site</a></div>
+<p class="sub">{% if stage %}<a href="/sites">Show all stages</a>{% else %}All stages, most recently moved first.{% endif %}</p>
+<div class="card table-wrap">
+{% if sites %}
+<table>
+  <tr><th>Site</th><th>Authority</th><th>Use</th><th class="num">Acres</th><th>Stage</th><th>Rating</th><th class="num">Expected profit</th><th class="num">Spent / cap</th><th>Last activity</th></tr>
+  {% for s in sites %}
+  <tr>
+    <td><a href="/sites/{{ s.id }}">{{ s.name }}</a></td>
+    <td>{{ s.authority }}</td>
+    <td>{{ s.land_use }}</td>
+    <td class="num">{{ s.gross_acres or "" }}</td>
+    <td>{{ s.stage }}</td>
+    <td>{% if s.rating %}<span class="badge {{ s.rating }}">{{ s.rating }}</span>{% else %}<span class="muted">not screened</span>{% endif %}</td>
+    <td class="num">{{ s.expected_profit|gbp }}</td>
+    <td class="num">{{ s.spent|gbp }}{% if caps[s.id] is not none %} / {{ caps[s.id]|gbp }}{% endif %}</td>
+    <td>{{ s.last_activity or "" }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}<p class="empty">No sites yet. <a href="/sites/new">Add one.</a></p>{% endif %}
+</div>
+{% endblock %}

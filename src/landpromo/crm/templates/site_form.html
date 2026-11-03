@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{{ "Edit " ~ site.name if site else "New site" }} · Land CRM{% endblock %}
+{% block content %}
+<h1>{{ "Edit " ~ site.name if site else "New site" }}</h1>
+<p class="sub">Latitude, longitude and acres are needed to run a screen.</p>
+<form class="card stack" method="post" action="{{ '/sites/%d/edit' % site.id if site else '/sites' }}">
+  <div class="fields">
+    <label>Name<input name="name" required value="{{ site.name if site else '' }}"></label>
+    <label>Local authority<input name="authority" value="{{ site.authority if site else '' }}"></label>
+    <label>Land use<select name="land_use">
+      {% for u in ["residential", "industrial"] %}<option {% if site and site.land_use == u %}selected{% endif %}>{{ u }}</option>{% endfor %}
+    </select></label>
+    <label>Gross acres<input name="gross_acres" inputmode="decimal" value="{{ site.gross_acres if site and site.gross_acres is not none else '' }}"></label>
+    <label>Latitude<input name="lat" inputmode="decimal" placeholder="50.989" value="{{ site.lat if site and site.lat is not none else '' }}"></label>
+    <label>Longitude<input name="lon" inputmode="decimal" placeholder="-1.497" value="{{ site.lon if site and site.lon is not none else '' }}"></label>
+    <label>Nutrient catchment<input name="nutrient_catchment" value="{{ site.nutrient_catchment if site else '' }}" placeholder="filled in by screen"></label>
+    <label>Local Plan stage<input name="local_plan_stage" value="{{ site.local_plan_stage if site else '' }}" placeholder="e.g. Reg 18 consultation"></label>
+    <label>Next deadline<input type="date" name="next_deadline" value="{{ site.next_deadline if site and site.next_deadline else '' }}"></label>
+    <label>Deadline note<input name="next_deadline_note" value="{{ site.next_deadline_note if site else '' }}" placeholder="e.g. call for sites closes"></label>
+    <label>Legal budget (£, incl. landowner's fees)<input name="legal_budget" inputmode="decimal" value="{{ '%.0f' % site.legal_budget if site and site.legal_budget else '' }}"></label>
+    <label>Agreement budget (£)<input name="agreement_budget" inputmode="decimal" value="{{ '%.0f' % site.agreement_budget if site and site.agreement_budget is not none else '75000' }}"></label>
+  </div>
+  <label>Notes<textarea name="notes">{{ site.notes if site else '' }}</textarea></label>
+  {% if not site %}{% include "_who.html" %}{% endif %}
+  <div><button>Save</button> <a href="{{ '/sites/%d' % site.id if site else '/sites' }}">Cancel</a></div>
+</form>
+{% endblock %}

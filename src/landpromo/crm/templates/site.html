@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}{{ site.name }} · Land CRM{% endblock %}
+{% block content %}
+<div class="row">
+  <div>
+    <h1>{{ site.name }}</h1>
+    <p class="sub">{{ site.authority or "Authority not set" }} · {{ site.land_use }} · {{ site.gross_acres or "?" }} acres ·
+      <b>{{ site.stage }}</b>
+      {% if site.rating %} · <span class="badge {{ site.rating }}">{{ site.rating }}</span>{% endif %}</p>
+  </div>
+  <a class="button secondary" href="/sites/{{ site.id }}/edit">Edit details</a>
+</div>
+
+<div class="grid">
+  <section class="card">
+    <h2>Stage</h2>
+    {% if site.stage in EXIT_CRITERIA %}
+    <p class="muted">To leave <b>{{ site.stage }}</b>:</p>
+    <ul class="tight">{% for c in EXIT_CRITERIA[site.stage] %}<li>{{ c }}</li>{% endfor %}</ul>
+    {% elif site.stage == "Killed" %}<p>Killed: {{ site.kill_reason }}</p>{% endif %}
+    <form class="stack" method="post" action="/sites/{{ site.id }}/stage" style="margin-top:12px">
+      <div class="fields">
+        <label>Move to<select name="new_stage">{% for s in STAGES %}<option {% if s == next_stage %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></label>
+        {% include "_who.html" %}
+      </div>
+      <label>Note<input name="note"></label>
+      <label>Kill reason (if killing)<input name="kill_reason"></label>
+      <label>Founder override (initials, only if a check fails)<input name="override_by" maxlength="5"></label>
+      <div><button>Move stage</button></div>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Spend</h2>
+    {% set pct = (spent / cap * 100) if cap else (100 if spent else 0) %}
+    <p><b>{{ spent|gbp }}</b> spent{% if cap is not none %} of {{ cap|gbp }} allowed at this stage{% endif %}</p>
+    {% if cap is not none %}<div class="bar {% if spent > cap %}over{% endif %}"><i style="width: {{ [pct, 100]|min }}%"></i></div>{% endif %}
+    <form class="stack" method="post" action="/sites/{{ site.id }}/spend">
+      <div class="fields">
+        <label>Amount (£)<input name="amount" inputmode="decimal" required></label>
+        <label>Date<input type="date" name="date" value="{{ today() }}"></label>
+        <label>Category<select name="category">{% for cat in SPEND_CATEGORIES %}<option>{{ cat }}</option>{% endfor %}</select></label>
+        <label>Supplier<input name="supplier"></label>
+      </div>
+      <label>Description<input name="description"></label>
+      <label>Founder approval (initials, needed if over cap)<input name="approved_by" maxlength="5"></label>
+      <div><button>Add spend</button></div>
+    </form>
+    {% if spend %}
+    <details style="margin-top:12px"><summary>Spend history ({{ spend|length }})</summary>
+    <div class="table-wrap"><table>
+      <tr><th>Date</th><th>Category</th><th>Supplier</th><th class="num">£</th><th>Stage</th><th>Approved</th></tr>
+      {% for x in spend %}<tr><td>{{ x.date }}</td><td>{{ x.category }}<br><span class="muted">{{ x.description }}</span></td><td>{{ x.supplier }}</td><td class="num">{{ x.amount|gbp }}</td><td>{{ x.stage }}</td><td>{{ x.approved_by }}</td></tr>{% endfor %}
+    </table></div></details>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2>Landowners</h2>
+    {% if landowners %}
+    <ul class="tight">{% for l in landowners %}
+      <li><a href="/landowners/{{ l.id }}">{{ l.name }}</a> <span class="muted">({{ l.role }})</span>
+        {% if l.do_not_contact %}<span class="badge RED">do not contact</span>{% endif %}
+        {% if not l.privacy_notice_sent %}<span class="badge AMBER">no privacy notice</span>{% endif %}
+        <form method="post" action="/sites/{{ site.id }}/landowners/{{ l.id }}/unlink" style="display:inline"><button class="link">unlink</button></form>
+      </li>{% endfor %}</ul>
+    {% else %}<p class="empty">No landowner linked.</p>{% endif %}
+    <form class="stack" method="post" action="/sites/{{ site.id }}/landowners" style="margin-top:12px">
+      <div class="fields">
+        <label>Existing landowner<select name="landowner_id"><option value="">—</option>{% for l in other_landowners %}<option value="{{ l.id }}">{{ l.name }}</option>{% endfor %}</select></label>
+        <label>…or new name<input name="name"></label>
+        <label>Role<select name="role"><option>Owner</option><option>Joint owner</option><option>Trustee</option><option>Agent</option><option>Tenant</option></select></label>
+      </div>
+      <div><button class="secondary">Link landowner</button></div>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Site facts</h2>
+    <table>
+      <tr><th>Location</th><td>{% if site.lat is not none %}{{ site.lat }}, {{ site.lon }}{% else %}<span class="muted">not set</span>{% endif %}</td></tr>
+      <tr><th>Nutrient catchment</th><td>{{ site.nutrient_catchment or "—" }}</td></tr>
+      <tr><th>Local Plan stage</th><td>{{ site.local_plan_stage or "—" }}</td></tr>
+      <tr><th>Next deadline</th><td>{{ site.next_deadline or "—" }} {{ site.next_deadline_note }}</td></tr>
+      <tr><th>Expected profit</th><td>{{ site.expected_profit|gbp }}</td></tr>
+      <tr><th>Legal / agreement budget</th><td>{{ site.legal_budget|gbp }} / {{ site.agreement_budget|gbp }}</td></tr>
+    </table>
+    {% if site.notes %}<p>{{ site.notes }}</p>{% endif %}
+  </section>
+</div>
+
+<section class="card" style="margin-top:16px">
+  <h2>Activity</h2>
+  <form class="stack" method="post" action="/sites/{{ site.id }}/activities">
+    <div class="fields">
+      <label>What<select name="kind">{% for k in ACTIVITY_KINDS %}<option>{{ k }}</option>{% endfor %}</select></label>
+      <label>Landowner<select name="landowner_id"><option value="">—</option>{% for l in landowners %}<option value="{{ l.id }}">{{ l.name }}</option>{% endfor %}</select></label>
+      <label>Date<input type="date" name="date" value="{{ today() }}"></label>
+      <label>Follow up on<input type="date" name="follow_up_date"></label>
+      {% include "_who.html" %}
+    </div>
+    <label class="check"><input type="checkbox" name="auto_follow_up" checked> Letters and emails: follow up after 21 days if no date given</label>
+    <label>Summary<textarea name="summary"></textarea></label>
+    <div><button>Log activity</button></div>
+  </form>
+  {% if activities %}
+  <div class="table-wrap" style="margin-top:12px"><table>
+    <tr><th>Date</th><th>What</th><th>Landowner</th><th>Summary</th><th>Who</th><th>Follow-up</th></tr>
+    {% for a in activities %}
+    <tr><td>{{ a.date }}</td><td>{{ a.kind }}</td><td>{{ a.landowner_name or "" }}</td><td>{{ a.summary }}</td><td>{{ a.by_whom }}</td>
+      <td>{% if a.follow_up_date %}{{ a.follow_up_date }}
+        {% if not a.follow_up_done %}<form method="post" action="/activities/{{ a.id }}/done" style="display:inline"><input type="hidden" name="next" value="/sites/{{ site.id }}"><button class="link">done</button></form>{% else %} ✓{% endif %}{% endif %}</td></tr>
+    {% endfor %}
+  </table></div>
+  {% endif %}
+</section>
+
+<section class="card" style="margin-top:16px">
+  <div class="row"><h2>Desktop appraisal</h2>
+    <form method="post" action="/sites/{{ site.id }}/screen"><button class="secondary">{{ "Re-run screen" if site.appraisal_md else "Run screen" }}</button></form>
+  </div>
+  {% if site.appraisal_md %}
+  <p class="muted">Last run {{ site.appraised_at }}. Draft for founder review.</p>
+  <pre class="appraisal">{{ site.appraisal_md }}</pre>
+  {% else %}<p class="empty">Not screened yet. Needs latitude, longitude and acres.</p>{% endif %}
+</section>
+
+<section class="card" style="margin-top:16px">
+  <h2>Stage history</h2>
+  <ul class="tight">{% for h in history %}<li>{{ h.changed_at[:16].replace("T", " ") }}: {{ h.from_stage or "—" }} → <b>{{ h.to_stage }}</b> <span class="muted">{{ h.by_whom }} {{ h.note }}</span></li>{% endfor %}</ul>
+</section>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ owner.name }} · Land CRM{% endblock %}
+{% block content %}
+<div class="row">
+  <div><h1>{{ owner.name }}</h1>
+  <p class="sub">{{ owner.owner_type }}
+    {% if owner.do_not_contact %} · <span class="badge RED">do not contact</span>{% endif %}
+    {% if not owner.privacy_notice_sent %} · <span class="badge AMBER">no privacy notice recorded</span>{% else %} · privacy notice sent {{ owner.privacy_notice_sent }}{% endif %}</p></div>
+  <a class="button secondary" href="/landowners/{{ owner.id }}/edit">Edit</a>
+</div>
+<div class="grid">
+  <section class="card">
+    <h2>Contact</h2>
+    <table>
+      <tr><th>Address</th><td style="white-space:pre-line">{{ owner.address or "—" }}</td></tr>
+      <tr><th>Email</th><td>{{ owner.email or "—" }}</td></tr>
+      <tr><th>Phone</th><td>{{ owner.phone or "—" }}</td></tr>
+      <tr><th>Lawful basis</th><td>{{ owner.lawful_basis }}</td></tr>
+    </table>
+    {% if owner.notes %}<p>{{ owner.notes }}</p>{% endif %}
+  </section>
+  <section class="card">
+    <h2>Sites</h2>
+    {% if sites %}<ul class="tight">{% for s in sites %}<li><a href="/sites/{{ s.id }}">{{ s.name }}</a> <span class="muted">{{ s.role }} · {{ s.stage }}</span></li>{% endfor %}</ul>
+    {% else %}<p class="empty">Not linked to a site. Link from the site page.</p>{% endif %}
+  </section>
+</div>
+<section class="card" style="margin-top:16px">
+  <h2>Activity</h2>
+  <form class="stack" method="post" action="/landowners/{{ owner.id }}/activities">
+    <div class="fields">
+      <label>What<select name="kind">{% for k in ACTIVITY_KINDS %}<option>{{ k }}</option>{% endfor %}</select></label>
+      <label>Site<select name="site_id"><option value="">—</option>{% for s in sites %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}</select></label>
+      <label>Date<input type="date" name="date" value="{{ today() }}"></label>
+      <label>Follow up on<input type="date" name="follow_up_date"></label>
+      {% include "_who.html" %}
+    </div>
+    <label class="check"><input type="checkbox" name="auto_follow_up" checked> Letters and emails: follow up after 21 days if no date given</label>
+    <label>Summary<textarea name="summary"></textarea></label>
+    <div><button>Log activity</button></div>
+  </form>
+  {% if activities %}
+  <div class="table-wrap" style="margin-top:12px"><table>
+    <tr><th>Date</th><th>What</th><th>Site</th><th>Summary</th><th>Who</th><th>Follow-up</th></tr>
+    {% for a in activities %}<tr><td>{{ a.date }}</td><td>{{ a.kind }}</td><td>{{ a.site_name or "" }}</td><td>{{ a.summary }}</td><td>{{ a.by_whom }}</td><td>{{ a.follow_up_date or "" }}{% if a.follow_up_done %} ✓{% endif %}</td></tr>{% endfor %}
+  </table></div>
+  {% endif %}
+</section>
+{% endblock %}
